@@ -1,4 +1,4 @@
 jack_transport_link
 rnbo-update-service
-rnbooscquery=1.4.0
+rnbooscquery=${RNBO_VERSION}
 rnbo-runner-panel
