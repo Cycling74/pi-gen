@@ -218,7 +218,8 @@ export TIMEZONE_DEFAULT="${TIMEZONE_DEFAULT:-Europe/London}"
 
 export GIT_HASH=${GIT_HASH:-"$(git rev-parse HEAD)"}
 
-export RNBO_VERSION="${RNBO_VERSION:-1.4.0}"
+# Keep RNBO_VERSION working for existing local configs.
+export RNBO_RUNNER_VERSION="${RNBO_RUNNER_VERSION:-${RNBO_VERSION:-1.4.0}}"
 
 export PUBKEY_SSH_FIRST_USER
 
