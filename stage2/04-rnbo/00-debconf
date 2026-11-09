@@ -1,0 +1,2 @@
+# Seed before 00-packages-nr installs jackd2, including in native builds.
+jackd2 jackd/tweak_rt_limits boolean true
