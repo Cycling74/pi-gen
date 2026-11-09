@@ -6,8 +6,81 @@ which was in turn derived from the Raspbian project.
 **Note**: Raspberry Pi OS 32 bit images are based primarily on Raspbian, while
 Raspberry Pi OS 64 bit images are based primarily on Debian.
 
-**Note**: 32 bit images should be built from the `master` branch.
-64 bit images should be built from the `arm64` branch.
+## RNBO images
+
+The manual **Build RNBO images** workflow lives on `rnbo/image-builder` and
+builds both of these branches with one required `runner_version` input:
+
+| Image | Branch | Based on |
+| --- | --- | --- |
+| Trixie 64-bit | `rnbo/trixie-64` | `xnor/rnbo-1.4.4-trixie` |
+| Bookworm 32-bit | `rnbo/bookworm-32` | `xnor/rnbo-1.4.3-bookworm` |
+
+The old branches are retained. Make image-specific changes on the corresponding
+image branch; make workflow and packaging changes on `rnbo/image-builder`.
+The workflow checks out the latest commit of each image branch and records its SHA.
+
+### One-time GitHub setup
+
+Push all three branches:
+
+```bash
+git push origin rnbo/trixie-64 rnbo/bookworm-32 rnbo/image-builder
+```
+
+GitHub requires the workflow on the repository's default branch to enable manual
+dispatch. Either make `rnbo/image-builder` the default branch in repository
+settings, or copy `.github/workflows/build-image.yml` and `.github/scripts/` to the
+existing default branch. Branch creation alone does not change this setting.
+See [GitHub's manual workflow documentation](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
+
+### Build and download
+
+In Actions, select **Build RNBO images**, click **Run workflow**, select
+`rnbo/image-builder`, and enter an exact package version such as `1.4.6-9`.
+After the one-time setup, the equivalent CLI command is:
+
+```bash
+gh workflow run build-image.yml --ref rnbo/image-builder -f runner_version=1.4.6-9
+```
+
+Both builds run independently. Trixie uses a native ARM64 runner; Bookworm uses
+an x86 runner with QEMU and its existing 32-bit Debian build container. Builds
+start with empty work directories and fresh APT indexes, so dependencies come
+from the configured repositories at build time. Only `rnbooscquery` is pinned
+and held at the requested version. A missing version fails the build.
+
+The image user remains `pi`, with hostname `c74rpi`, SSH enabled, and password
+`c74rnbo`. Optionally set the repository secret `FIRST_USER_PASS` to override it.
+JACK realtime privileges are preseeded before `jackd2` installation on both
+image branches, including when building locally.
+
+Download each image artifact from the run. GitHub's artifact ZIP is a wrapper;
+unpack it to get the distributable files:
+
+```text
+raspios-trixie-lite-64bit-rnbooscquery-1.4.6-9.img.zip
+raspios-bookworm-lite-32bit-rnbooscquery-1.4.6-9.img.zip
+```
+
+Each image ZIP contains a single `.img` with the same basename. Each artifact
+also includes a ZIP SHA-256 file, `repo-entry.json` for the runner's Imager
+catalog, a `build-manifest.json` with source commits, and pi-gen's package info.
+The metadata uses the uncompressed image's size and SHA-256, and the ZIP's
+download size. The workflow verifies the installed runner version, architecture,
+release, audio-group membership, and JACK limits before exporting the image.
+
+Artifacts and diagnostic logs are retained for 14 days. Download them before
+expiry. Publishing images to `assets.cycling74.com` and merging the generated
+catalog entries into `repo.json` remain separate release steps.
+
+To check the packaging helpers locally:
+
+```bash
+python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+```
+
+The remainder of this README describes upstream pi-gen.
 
 ## Dependencies
 

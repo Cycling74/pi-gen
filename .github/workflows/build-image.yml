@@ -1,0 +1,104 @@
+name: Build RNBO images
+run-name: RNBO ${{ inputs.runner_version }} — Trixie 64-bit and Bookworm 32-bit
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_version:
+        description: "Exact rnbooscquery package version (for example, 1.4.6-9)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.release }} / ${{ matrix.bits }}-bit
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - release: trixie
+            bits: 64
+            branch: rnbo/trixie-64
+            host: ubuntu-24.04-arm
+          - release: bookworm
+            bits: 32
+            branch: rnbo/bookworm-32
+            host: ubuntu-24.04
+    env:
+      RNBO_RUNNER_VERSION: ${{ inputs.runner_version }}
+      IMAGE_RELEASE: ${{ matrix.release }}
+      IMAGE_BITS: ${{ matrix.bits }}
+    steps:
+      - name: Check out workflow tools
+        uses: actions/checkout@v4
+        with:
+          path: automation
+          persist-credentials: false
+
+      - name: Check out image branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+          path: pi-gen
+          persist-credentials: false
+
+      - name: Configure fresh build
+        env:
+          FIRST_USER_PASS: ${{ secrets.FIRST_USER_PASS || 'c74rnbo' }}
+        run: python3 automation/.github/scripts/image.py configure pi-gen
+
+      # The Bookworm build uses an i386 Debian container and qemu-arm-static.
+      # Trixie builds natively on ARM64 and needs no host emulation packages.
+      - name: Install ARM emulation for Bookworm
+        if: matrix.bits == 32
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+
+      - name: Build image
+        working-directory: pi-gen
+        run: |
+          set -euo pipefail
+          df -h .
+          ./build-docker.sh 2>&1 | tee build-console.log
+
+      - name: Verify archive and generate repo.json entry
+        run: python3 automation/.github/scripts/image.py metadata pi-gen
+
+      - name: Upload image and metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: raspios-${{ matrix.release }}-lite-${{ matrix.bits }}bit-rnbooscquery-${{ inputs.runner_version }}
+          path: |
+            pi-gen/deploy/*.img.zip
+            pi-gen/deploy/*.json
+            pi-gen/deploy/*.sha256
+            pi-gen/deploy/*.info
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Collect build diagnostics
+        if: always()
+        working-directory: pi-gen
+        run: |
+          mkdir -p diagnostics
+          if docker container inspect pigen_work >/dev/null 2>&1; then
+            docker logs --timestamps pigen_work > diagnostics/container.log 2>&1
+          fi
+          cp build-console.log diagnostics/ 2>/dev/null || true
+          cp deploy/*.log diagnostics/ 2>/dev/null || true
+          df -h . > diagnostics/disk-space.txt
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.release }}-${{ matrix.bits }}bit
+          path: pi-gen/diagnostics/
+          retention-days: 14
