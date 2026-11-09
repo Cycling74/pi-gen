@@ -45,8 +45,10 @@ gh workflow run build-image.yml --ref rnbo/image-builder -f runner_version=1.4.6
 ```
 
 Both builds run independently. Trixie uses a native ARM64 runner; Bookworm uses
-an x86 runner with QEMU and its existing 32-bit Debian build container. Builds
-start with empty work directories and fresh APT indexes, so dependencies come
+an x86 runner with QEMU and its existing 32-bit Debian build container.
+Each build container configures its own emulation when needed; no host QEMU
+installation is required. Builds start with empty work directories and fresh
+APT indexes, so dependencies come
 from the configured repositories at build time. Only `rnbooscquery` is pinned
 and held at the requested version. A missing version fails the build.
 

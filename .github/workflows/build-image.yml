@@ -52,14 +52,7 @@ jobs:
           FIRST_USER_PASS: ${{ secrets.FIRST_USER_PASS || 'c74rnbo' }}
         run: python3 automation/.github/scripts/image.py configure pi-gen
 
-      # The Bookworm build uses an i386 Debian container and qemu-arm-static.
-      # Trixie builds natively on ARM64 and needs no host emulation packages.
-      - name: Install ARM emulation for Bookworm
-        if: matrix.bits == 32
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
-
+      # Each image branch manages any required emulation inside its container.
       - name: Build image
         working-directory: pi-gen
         run: |
