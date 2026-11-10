@@ -63,18 +63,24 @@ jobs:
       - name: Verify archive and generate repo.json entry
         run: python3 automation/.github/scripts/image.py metadata pi-gen
 
-      - name: Upload image and metadata
-        uses: actions/upload-artifact@v4
+      - name: Upload flashable image directly
+        uses: actions/upload-artifact@v7
         with:
-          name: raspios-${{ matrix.release }}-lite-${{ matrix.bits }}bit-rnbooscquery-${{ inputs.runner_version }}
+          path: pi-gen/deploy/*.img.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload image metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: metadata-${{ matrix.release }}-${{ matrix.bits }}bit-${{ inputs.runner_version }}
           path: |
-            pi-gen/deploy/*.img.zip
             pi-gen/deploy/*.json
             pi-gen/deploy/*.sha256
             pi-gen/deploy/*.info
           if-no-files-found: error
           retention-days: 14
-          compression-level: 0
 
       - name: Collect build diagnostics
         if: always()
@@ -90,7 +96,7 @@ jobs:
 
       - name: Upload build diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs-${{ matrix.release }}-${{ matrix.bits }}bit
           path: pi-gen/diagnostics/

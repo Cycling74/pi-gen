@@ -57,20 +57,25 @@ The image user remains `pi`, with hostname `c74rpi`, SSH enabled, and password
 JACK realtime privileges are preseeded before `jackd2` installation on both
 image branches, including when building locally.
 
-Download each image artifact from the run. GitHub's artifact ZIP is a wrapper;
-unpack it to get the distributable files:
+Download each `.img.zip` artifact from the run and select it directly in
+Raspberry Pi Imager's **Use custom** option. The workflow uploads the image ZIP
+as a single file using `archive: false`, so there is no extra ZIP wrapper:
 
 ```text
 raspios-trixie-lite-64bit-rnbooscquery-1.4.6-9.img.zip
 raspios-bookworm-lite-32bit-rnbooscquery-1.4.6-9.img.zip
 ```
 
-Each image ZIP contains a single `.img` with the same basename. Each artifact
-also includes a ZIP SHA-256 file, `repo-entry.json` for the runner's Imager
+Each image ZIP contains a single `.img` with the same basename. A separate
+`metadata-<release>-<bits>bit-<version>` artifact contains the ZIP SHA-256 file,
+`repo-entry.json` for the runner's Imager
 catalog, a `build-manifest.json` with source commits, and pi-gen's package info.
 The metadata uses the uncompressed image's size and SHA-256, and the ZIP's
 download size. The workflow verifies the installed runner version, architecture,
 release, audio-group membership, and JACK limits before exporting the image.
+
+Artifacts from older workflow runs still have the extra wrapper: extract their
+downloaded ZIP once, then select the inner `.img.zip` in Imager.
 
 Artifacts and diagnostic logs are retained for 14 days. Download them before
 expiry. Publishing images to `assets.cycling74.com` and merging the generated
