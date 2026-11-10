@@ -5,6 +5,10 @@ INFO_FILE="${STAGE_WORK_DIR}/${IMG_FILENAME}${IMG_SUFFIX}.info"
 SBOM_FILE="${STAGE_WORK_DIR}/${IMG_FILENAME}${IMG_SUFFIX}.sbom"
 BMAP_FILE="${STAGE_WORK_DIR}/${IMG_FILENAME}${IMG_SUFFIX}.bmap"
 
+# Restore kernel hooks before creating the final initramfs for every installed
+# kernel. The temporary setting must never reach the deployed image.
+sed -i '/^SKIP_INITRAMFS_GEN=yes # pi-gen build only$/d' "${ROOTFS_DIR}/etc/default/raspi-firmware"
+
 on_chroot <<- EOF
 	update-initramfs -k all -c
 	if hash hardlink 2>/dev/null; then
