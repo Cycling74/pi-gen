@@ -52,6 +52,11 @@ APT indexes, so dependencies come
 from the configured repositories at build time. Only `rnbooscquery` is pinned
 and held at the requested version. A missing version fails the build.
 
+Both image branches defer initramfs generation until final export, avoiding
+repeated generation during package installation. Export creates an initramfs
+for every installed kernel and restores normal kernel-update behavior in the
+finished image.
+
 The image user remains `pi`, with hostname `c74rpi`, SSH enabled, and password
 `c74rnbo`. Optionally set the repository secret `FIRST_USER_PASS` to override it.
 JACK realtime privileges are preseeded before `jackd2` installation on both
